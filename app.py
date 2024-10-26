@@ -18,6 +18,7 @@ error_correction = ErrorCorrection()
 # Store the current DNA sequence in memory
 current_dna_sequence = None
 
+
 @app.route("/")
 def index():
     return render_template_string(TEMPLATE)
@@ -37,6 +38,7 @@ def health_check():
 def ping():
     # Lightweight endpoint just for uptime monitoring
     return {"status": "ok"}, 200
+
 
 @app.route("/encode", methods=["POST"])
 def encode():
@@ -60,17 +62,18 @@ def encode():
         if pos.modifications.formylated:
             mods.append("fC")
 
-        sequence_viz.append({
-            "base": pos.base,
-            "modifications": mods,
-            "backbone": pos.backbone
-        })
+        sequence_viz.append(
+            {"base": pos.base, "modifications": mods, "backbone": pos.backbone}
+        )
 
-    return jsonify({
-        "original_data": data,
-        "encoded_data": encoded_data,
-        "dna_sequence": sequence_viz,
-    })
+    return jsonify(
+        {
+            "original_data": data,
+            "encoded_data": encoded_data,
+            "dna_sequence": sequence_viz,
+        }
+    )
+
 
 @app.route("/decode", methods=["GET"])
 def decode():
@@ -84,61 +87,59 @@ def decode():
 
     return jsonify({"decoded_data": final_data})
 
+
 @app.route("/reverse", methods=["POST"])
 def reverse():
     try:
         data = request.json.get("dna_sequence", [])
         print("Received DNA sequence:", data)
-        
+
         if not data:
             return jsonify({"error": "No DNA sequence provided"}), 400
-        
+
         # Convert the JSON DNA sequence to proper DNAPosition objects
         dna_sequence = []
         for pos in data:
             # Create DNA position
-            dna_pos = DNAPosition(pos['base'])
-            
+            dna_pos = DNAPosition(pos["base"])
+
             # Set modifications
             dna_pos.modifications = ModificationState(
-                methylated='Me' in pos['modifications'],
-                hydroxymethylated='hMe' in pos['modifications'],
-                formylated='fC' in pos['modifications']
+                methylated="Me" in pos["modifications"],
+                hydroxymethylated="hMe" in pos["modifications"],
+                formylated="fC" in pos["modifications"],
             )
-            
+
             # Set backbone
-            dna_pos.backbone = pos.get('backbone', 'standard')
+            dna_pos.backbone = pos.get("backbone", "standard")
             dna_sequence.append(dna_pos)
-        
+
         print("Created DNA sequence objects:", [str(pos) for pos in dna_sequence])
-        
+
         # Decode DNA back to binary
         binary_data = storage_system.decode_from_dna(dna_sequence)
         if binary_data is None:
             return jsonify({"error": "Failed to decode DNA sequence"}), 400
-        
+
         print("Binary data after decoding:", binary_data)
-        
+
         # Apply error correction decoding
         error_corrected_data = error_correction.decode(binary_data)
         if error_corrected_data is None:
             return jsonify({"error": "Failed to apply error correction"}), 400
-        
-        print("Final decoded result:", {
-            "binary_data": binary_data,
-            "error_corrected_data": error_corrected_data
-        })
-        
-        return jsonify({
-            "binary_data": binary_data,
-            "error_corrected_data": error_corrected_data
-        })
-        
+
+        print(
+            "Final decoded result:",
+            {"binary_data": binary_data, "error_corrected_data": error_corrected_data},
+        )
+
+        return jsonify(
+            {"binary_data": binary_data, "error_corrected_data": error_corrected_data}
+        )
+
     except Exception as e:
         print("Error during decoding:", str(e))
-        return jsonify({
-            "error": f"Failed to decode DNA sequence: {str(e)}"
-        }), 400
+        return jsonify({"error": f"Failed to decode DNA sequence: {str(e)}"}), 400
 
 
 # HTML template as a string with animation
