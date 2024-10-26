@@ -1,4 +1,5 @@
 from flask import Flask, render_template_string, request, jsonify
+import os
 from dna_storage import DNAStorageSystem, ErrorCorrection
 
 app = Flask(__name__)
@@ -496,6 +497,9 @@ current_dna_sequence = None
 def index():
     return render_template_string(TEMPLATE)
 
+@app.route('/health')
+def health_check():
+    return {'status': 'healthy'}, 200
 
 @app.route("/encode", methods=["POST"])
 def encode():
@@ -547,5 +551,5 @@ def decode():
 
 if __name__ == "__main__":
     print("Starting DNA Storage Web Interface...")
-    print("Open http://localhost:5000 in your web browser")
-    app.run(debug=True)
+    port = os.environ.get('PORT', 8080)
+    app.run(host='0.0.0.0', port=port)
